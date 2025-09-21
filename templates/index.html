@@ -1,18 +1,50 @@
 <!doctype html>
-<html><head>
+<html lang="en">
+<head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Data Dashboard</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;margin:0;padding:24px;background:#0b0e14;color:#eaeefb}
+    h1{margin:0 0 12px}
+    form{display:flex;gap:8px;margin:12px 0 20px}
+    input[type=file]{padding:8px;background:#121826;border:1px solid #1c2433;border-radius:10px;color:#cfe3ff}
+    button{padding:10px 16px;border-radius:10px;border:1px solid #355;background:#1c2b45;color:#dbe7ff;cursor:pointer}
+    #msg{margin:8px 0 12px;opacity:.85}
+    pre{background:#121826;border:1px solid #1c2433;border-radius:12px;padding:12px;overflow:auto}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px;max-width:1000px}
+    @media (min-width: 900px){.grid{grid-template-columns:1fr 1fr}}
+    .card{padding:12px;background:#0f1420;border:1px solid #1c2433;border-radius:14px}
+    canvas{background:#0f1420;border:1px solid #1c2433;border-radius:14px}
+  </style>
 </head>
 <body>
   <h1>Data Dashboard</h1>
+
   <form id="uform">
     <input type="file" name="file" accept=".csv" required>
     <button>Upload CSV</button>
   </form>
-  <pre id="summary"></pre>
-  <div style="max-width:900px"><canvas id="chart"></canvas></div>
-  <pre id="preview"></pre>
+
+  <div id="msg"></div>
+
+  <div class="grid">
+    <div class="card">
+      <h3>Summary</h3>
+      <pre id="summary">Upload a CSV to see a summary here…</pre>
+    </div>
+    <div class="card">
+      <h3>Chart (first numeric column)</h3>
+      <canvas id="chart" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px;max-width:1000px">
+    <h3>Preview (first 20 rows)</h3>
+    <pre id="preview"></pre>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/static/main.js"></script>
-</body></html>
+</body>
+</html>
