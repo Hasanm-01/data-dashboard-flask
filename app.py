@@ -1,17 +1,16 @@
 from flask import Flask, render_template, request, jsonify
 from werkzeug.exceptions import HTTPException
 import pandas as pd
-import json
+import numpy as np
 from io import StringIO
 import traceback
 
 app = Flask(__name__)
 
-# ---- Global error handler: always return JSON instead of HTML ----
+# Always return JSON on errors (no HTML 500 pages)
 @app.errorhandler(Exception)
 def handle_all_errors(e):
     status = e.code if isinstance(e, HTTPException) else 500
-    # Log full traceback to server logs for debugging
     print("SERVER ERROR:", repr(e))
     print(traceback.format_exc(), flush=True)
     return jsonify({"error": str(e), "type": e.__class__.__name__}), status
@@ -22,26 +21,22 @@ def home():
 
 @app.post("/upload")
 def upload():
-    """
-    Read raw bytes, decode safely, auto-detect delimiter,
-    coerce numeric-looking columns, and return NaN-free JSON.
-    """
+    # 1) Get file safely
     f = request.files.get("file")
     if not f or f.filename == "":
         return jsonify({"error": "no file"}), 400
-
     raw = f.stream.read()
     if not raw:
         return jsonify({"error": "empty file"}), 400
     text = raw.decode("utf-8", errors="ignore")
 
-    # Parse CSV with delimiter sniffing; fall back to comma if needed
+    # 2) Parse CSV (auto-detect delimiter; fall back to comma)
     try:
         df = pd.read_csv(StringIO(text), sep=None, engine="python")
     except Exception:
         df = pd.read_csv(StringIO(text))
 
-    # Coerce object columns that look numeric (heuristic ≥50% parsable)
+    # 3) Coerce numeric-looking object columns (≥50% parsable)
     for col in df.columns:
         if df[col].dtype == "object":
             cleaned = df[col].astype(str).str.replace(r"[^\d.\-]", "", regex=True)
@@ -49,16 +44,20 @@ def upload():
             if coerced.notna().mean() >= 0.5:
                 df[col] = coerced
 
-    # Preview (first 20 rows) with NaN -> null (allow_nan=False)
-    preview = json.loads(df.head(20).to_json(orient="records", allow_nan=False))
+    # 4) Build preview with NaN -> None (valid JSON)
+    preview = (
+        df.head(20)
+          .replace({np.nan: None})
+          .to_dict(orient="records")
+    )
 
-    # Summary for first numeric column with values
+    # 5) Summary for first numeric column with values
     summary = {"rows": int(len(df)), "columns": list(df.columns), "numericSummary": None}
     num_cols = df.select_dtypes(include="number").columns.tolist()
     if num_cols:
         col = num_cols[0]
-        series = df[col]
-        if int(series.count()) > 0:
+        series = df[col].dropna()
+        if len(series) > 0:
             summary["numericSummary"] = {
                 "column": col,
                 "mean": float(series.mean()),
