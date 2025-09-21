@@ -13,9 +13,16 @@ form.addEventListener("submit", async (e) => {
   try {
     const fd = new FormData(form);
     const res = await fetch("/upload", { method: "POST", body: fd });
-    const json = await res.json();
+    const text = await res.text();
 
-    if (!res.ok || json.error) throw new Error(json.error || `HTTP ${res.status}`);
+    // Safely parse (so we can show server errors cleanly)
+    let json;
+    try { json = JSON.parse(text); }
+    catch { throw new Error(`Server did not return valid JSON:\n${text.slice(0, 200)}…`); }
+
+    if (!res.ok || json.error) {
+      throw new Error(json.error || `HTTP ${res.status}`);
+    }
 
     const { summary, preview } = json;
     summaryEl.textContent = JSON.stringify(summary, null, 2);
